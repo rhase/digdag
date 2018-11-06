@@ -3,6 +3,7 @@ package io.digdag.standards.operator.gcp;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.api.client.googleapis.auth.oauth2.GoogleCredential;
+import com.google.cloud.ServiceOptions;
 import com.google.common.base.Optional;
 import com.google.inject.Inject;
 import io.digdag.spi.SecretProvider;
@@ -25,11 +26,26 @@ class GcpCredentialProvider
 
     GcpCredential credential(SecretProvider secrets)
     {
-        String credential = secrets.getSecret("gcp.credential");
-        return ImmutableGcpCredential.builder()
-                .projectId(credentialProjectId(credential))
-                .credential(googleCredential(credential))
-                .build();
+        Optional<String> credentialOpt = secrets.getSecretOptional("gcp.credential");
+        ImmutableGcpCredential.Builder builder = ImmutableGcpCredential.builder();
+        if (credentialOpt.isPresent()) {
+          String credential = credentialOpt.get();
+          builder.projectId(credentialProjectId(credential))
+            .credential(googleCredential(credential));
+        }
+        else {
+          try {
+            builder.projectId(ServiceOptions.getDefaultProjectId())
+              .credential(GoogleCredential.getApplicationDefault());
+          }
+          catch (IOException e) {
+            throw new TaskExecutionException(
+              "'gcp.credential' secret is not found and unable get default google credential",
+              e
+            );
+          }
+        }
+        return builder.build();
     }
 
     private Optional<String> credentialProjectId(String credential)
