@@ -1,0 +1,8 @@
+
+dependencies {
+    compile project(':digdag-spi')
+    compile project(':digdag-plugin-utils')
+    compile project(':digdag-core')
+
+    compile 'com.google.cloud:google-cloud-storage:1.49.0'
+}
